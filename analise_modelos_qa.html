@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Comparativa: DistilBERT vs RoBERTa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            animation: wave 10s linear infinite;
+        }
+
+        @keyframes wave {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        .hero h1 {
+            font-size: 3.5em;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: fadeInDown 1s ease;
+        }
+
+        .hero p {
+            font-size: 1.3em;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.95;
+            animation: fadeInUp 1s ease 0.3s backwards;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: slideInUp 0.8s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            font-weight: 700;
+            position: relative;
+            padding-left: 100px;
+        }
+
+        h2::before {
+            content: '📊';
+            position: absolute;
+            left: -10px;
+            font-size: 1.2em;
+        }
+
+        h3 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin: 30px 0 15px 0;
+            font-weight: 600;
+        }
+
+        .what-is {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(240, 147, 251, 0.3);
+        }
+
+        .what-is h3 {
+            color: white;
+            margin-top: 0;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .model-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .model-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .model-card.winner {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            border: 3px solid #4caf50;
+            position: relative;
+        }
+
+        .model-card.winner::after {
+            content: '🏆 VENCEDOR';
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #4caf50;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .model-card h4 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 40px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .criteria-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+
+        .criteria-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .criteria-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .criteria-card h4 {
+            color: #667eea;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+
+        .criteria-card .result {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            transition: width 1.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .example-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .example-box h5 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .example-box .question {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .example-box .answer {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 3px solid #667eea;
+        }
+
+        .conclusion {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 50px;
+            border-radius: 20px;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .conclusion h2 {
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 25px;
+        }
+
+        .conclusion h2::before {
+            content: '✅';
+        }
+
+        .conclusion p {
+            font-size: 1.3em;
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            line-height: 1.8;
+        }
+
+        .conclusion-box {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .conclusion-box h4 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .conclusion-box ul {
+            list-style: none;
+            text-align: left;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .conclusion-box li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .conclusion-box li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            font-weight: 700;
+            font-size: 1.3em;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .metric-comparison {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .metric-comparison .model {
+            flex: 1;
+            text-align: center;
+        }
+
+        .metric-comparison .vs {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+            margin: 0 20px;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            color: #667eea;
+            font-weight: 600;
+            border-bottom: 2px dotted #667eea;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #2c3e50;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 15px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2em;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section {
+                padding: 30px 20px;
+            }
+
+            h2 {
+                font-size: 1.8em;
+            }
+        }
+
+        .scroll-indicator {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 25px rgba(102, 126, 234, 0.4);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .scroll-indicator:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>🤖 Comparação de Modelos de IA</h1>
+        <p>Entenda qual modelo responde melhor às suas perguntas: DistilBERT vs RoBERTa</p>
+    </div>
+
+    <div class="container">
+        <!-- O que é isso? -->
+        <div class="section">
+            <h2>O que são estes modelos?</h2>
+            <div class="what-is">
+                <h3>💡 Imagine um assistente virtual que lê textos e responde perguntas</h3>
+                <p style="font-size: 1.1em; line-height: 1.8;">
+                    Os modelos <strong>DistilBERT</strong> e <strong>RoBERTa</strong> são como "cérebros artificiais"
+                    treinados para:
+                </p>
+                <ul style="margin-top: 20px; font-size: 1.1em; line-height: 2;">
+                    <li>📖 Ler e entender textos</li>
+                    <li>❓ Receber uma pergunta</li>
+                    <li>🎯 Encontrar a resposta dentro do texto</li>
+                    <li>💬 Devolver a resposta de forma clara</li>
+                </ul>
+                <p style="margin-top: 20px; font-size: 1.1em;">
+                    <strong>Exemplo prático:</strong> Você pergunta "Quem fundou a Microsoft?" e o modelo busca no texto
+                    a resposta "Bill Gates".
+                </p>
+            </div>
+        </div>
+
+        <!-- Critérios de Avaliação -->
+        <div class="section">
+            <h2>Como os modelos foram avaliados?</h2>
+            <p style="font-size: 1.1em; margin-bottom: 30px;">
+                Testamos ambos os modelos com <strong>1.000 perguntas</strong> e analisamos 4 aspectos:
+            </p>
+
+            <div class="criteria-grid">
+                <div class="criteria-card">
+                    <h4>📏 A) Tamanho das Perguntas</h4>
+                    <div class="result">25.75</div>
+                    <p>caracteres em média</p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        Perguntas curtas e diretas (ex: "Quem é o presidente?")
+                    </p>
+                </div>
+
+                <div class="criteria-card">
+                    <h4>🎯 B) Confiança do Modelo</h4>
+                    <div class="result">41.3%</div>
+                    <p>DistilBERT (M1)</p>
+                    <div class="result" style="color: #f5576c;">33.1%</div>
+                    <p>RoBERTa (M2)</p>
+                </div>
+
+                <div class="criteria-card">
+                    <h4>✅ C) Fidelidade ao Texto</h4>
+                    <div class="result">83.7%</div>
+                    <p>DistilBERT (M1)</p>
+                    <div class="result" style="color: #f5576c;">78.4%</div>
+                    <p>RoBERTa (M2)</p>
+                </div>
+
+                <div class="criteria-card">
+                    <h4>🔍 D) Análise Qualitativa</h4>
+                    <div class="result">25</div>
+                    <p>exemplos analisados</p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        10 melhores, 10 piores, 5 divergentes
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparação Detalhada -->
+        <div class="section">
+            <h2>Comparação Detalhada</h2>
+
+            <div class="comparison-grid">
+                <div class="model-card winner">
+                    <h4>🥇 DistilBERT (M1)</h4>
+                    <div class="stat">
+                        <span class="stat-label">Confiança Média</span>
+                        <span class="stat-value">41.3%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Fidelidade ao Texto</span>
+                        <span class="stat-value">83.7%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Risco de Alucinação</span>
+                        <span class="stat-value" style="color: #4caf50;">7.7%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Velocidade</span>
+                        <span class="stat-value" style="color: #4caf50;">60% + rápido</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Tamanho do Modelo</span>
+                        <span class="stat-value" style="color: #4caf50;">40% menor</span>
+                    </div>
+                </div>
+
+                <div class="model-card">
+                    <h4>🥈 RoBERTa (M2)</h4>
+                    <div class="stat">
+                        <span class="stat-label">Confiança Média</span>
+                        <span class="stat-value">33.1%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Fidelidade ao Texto</span>
+                        <span class="stat-value">78.4%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Risco de Alucinação</span>
+                        <span class="stat-value" style="color: #f5576c;">12.2%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Velocidade</span>
+                        <span class="stat-value">Normal</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Tamanho do Modelo</span>
+                        <span class="stat-value">Maior</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3>📊 Visualização de Performance</h3>
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Explicação dos Termos -->
+        <div class="section">
+            <h2>Glossário: Entenda os termos técnicos</h2>
+
+            <div class="tab-container">
+                <button class="tab active" onclick="openTab(event, 'confianca')">Confiança</button>
+                <button class="tab" onclick="openTab(event, 'fidelidade')">Fidelidade</button>
+                <button class="tab" onclick="openTab(event, 'alucinacao')">Alucinação</button>
+            </div>
+
+            <div id="confianca" class="tab-content active">
+                <h3>🎯 O que é "Confiança"?</h3>
+                <p style="font-size: 1.1em; line-height: 1.8; margin-top: 20px;">
+                    É o quanto o modelo <strong>acredita</strong> que sua resposta está correta. Funciona como uma nota
+                    de 0% a 100%.
+                </p>
+                <div class="example-box">
+                    <h5>Exemplo Prático:</h5>
+                    <div class="question">❓ Pergunta: "Quem fundou a Apple?"</div>
+                    <div class="answer">
+                        <strong>Resposta do DistilBERT:</strong> "Steve Jobs" (Confiança: 95%)
+                    </div>
+                    <p style="margin-top: 10px;">
+                        ✅ O modelo está <strong>muito seguro</strong> desta resposta!
+                    </p>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 41.3%;">41.3%</div>
+                </div>
+                <p>← Confiança média do DistilBERT em todas as 1.000 perguntas</p>
+            </div>
+
+            <div id="fidelidade" class="tab-content">
+                <h3>✅ O que é "Fidelidade ao Texto"?</h3>
+                <p style="font-size: 1.1em; line-height: 1.8; margin-top: 20px;">
+                    Mede se o modelo <strong>copiou a resposta diretamente do texto</strong> ou se "inventou" algo.
+                </p>
+                <div class="example-box">
+                    <h5>Exemplo Prático:</h5>
+                    <div class="question">📄 Texto: "A Microsoft foi fundada por Bill Gates em 1975."</div>
+                    <div class="question">❓ Pergunta: "Quem fundou a Microsoft?"</div>
+                    <div class="answer">
+                        <strong>Resposta do DistilBERT:</strong> "Bill Gates" ✅<br>
+                        <small>Fidelidade: 100% - todas as palavras estão no texto original</small>
+                    </div>
+                    <div class="answer" style="border-left-color: #f5576c;">
+                        <strong>Resposta RUIM:</strong> "Steve Ballmer" ❌<br>
+                        <small>Fidelidade: 0% - este nome não está no texto!</small>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 83.7%;">83.7%</div>
+                </div>
+                <p>← Fidelidade média do DistilBERT (alta = mais confiável)</p>
+            </div>
+
+            <div id="alucinacao" class="tab-content">
+                <h3>⚠️ O que é "Alucinação"?</h3>
+                <p style="font-size: 1.1em; line-height: 1.8; margin-top: 20px;">
+                    Quando o modelo <strong>"inventa"</strong> informações que não estão no texto. É como se ele
+                    "alucinasse" uma resposta!
+                </p>
+                <div class="example-box" style="background: #f8d7da; border-left-color: #dc3545;">
+                    <h5>Exemplo de Alucinação:</h5>
+                    <div class="question">📄 Texto: "Judit Polgár é uma enxadrista húngara nascida em 1976."</div>
+                    <div class="question">❓ Pergunta: "Quem é a mais jovem enxadrista mulher?"</div>
+                    <div class="answer" style="border-left-color: #dc3545;">
+                        <strong>Resposta do RoBERTa:</strong> "Bobby Fischer" ❌❌<br>
+                        <small style="color: #dc3545;">
+                            ERRO GRAVE: Bobby Fischer é HOMEM, não mulher!<br>
+                            Isso é uma alucinação - o modelo inventou uma resposta totalmente errada.
+                        </small>
+                    </div>
+                </div>
+                <div class="metric-comparison">
+                    <div class="model">
+                        <h4>DistilBERT</h4>
+                        <div style="font-size: 2.5em; color: #4caf50;">7.7%</div>
+                        <p>de alucinações</p>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="model">
+                        <h4>RoBERTa</h4>
+                        <div style="font-size: 2.5em; color: #dc3545;">12.2%</div>
+                        <p>de alucinações</p>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 20px; font-weight: 600; color: #4caf50;">
+                    ✅ DistilBERT é MAIS SEGURO - inventa menos respostas!
+                </p>
+            </div>
+        </div>
+
+        <!-- Exemplos Reais -->
+        <div class="section">
+            <h2>Exemplos Reais de Testes</h2>
+
+            <h3>🏆 Quando os modelos acertam (Top 10)</h3>
+            <div class="example-box" style="background: #d4edda; border-left-color: #28a745;">
+                <h5>Exemplo 1: Pergunta Simples e Direta</h5>
+                <div class="question">❓ "Quem fundou a cerveja Labatt?"</div>
+                <div class="answer">
+                    <strong>DistilBERT:</strong> "John Kinder Labatt" (Confiança: 99.4%) ✅
+                </div>
+                <div class="answer">
+                    <strong>RoBERTa:</strong> "John Kinder Labatt" (Confiança: 96.9%) ✅
+                </div>
+                <p style="margin-top: 15px; color: #155724;">
+                    <strong>Resultado:</strong> Ambos acertaram! Perguntas factuais simples são fáceis para os modelos.
+                </p>
+            </div>
+
+            <h3>⚠️ Quando os modelos erram (Bottom 10)</h3>
+            <div class="example-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h5>Exemplo 2: Pergunta Aberta e Complexa</h5>
+                <div class="question">❓ "Quais livros Tolkien escreveu?"</div>
+                <div class="answer">
+                    <strong>DistilBERT:</strong> "O Hobbit, O Senhor dos Anéis" (Confiança: 0.3%) ⚠️
+                </div>
+                <div class="answer">
+                    <strong>RoBERTa:</strong> "O Hobbit, O Senhor dos Anéis e O Silmarillion" (Confiança: 79.6%) ⚠️
+                </div>
+                <p style="margin-top: 15px; color: #856404;">
+                    <strong>Problema:</strong> Tolkien escreveu MUITOS livros! A resposta está incompleta.<br>
+                    O DistilBERT sinalizou baixa confiança (0.3%) - ele sabe que não está 100% certo.
+                </p>
+            </div>
+
+            <h3>🔄 Quando os modelos discordam</h3>
+            <div class="example-box" style="background: #cfe2ff; border-left-color: #0d6efd;">
+                <h5>Exemplo 3: Respostas Diferentes</h5>
+                <div class="question">❓ "Em que rio o Javari está localizado?"</div>
+                <div class="answer">
+                    <strong>DistilBERT:</strong> "Rio Javari" ✅
+                </div>
+                <div class="answer">
+                    <strong>RoBERTa:</strong> "Amazonas" ⚠️
+                </div>
+                <p style="margin-top: 15px; color: #084298;">
+                    <strong>Análise:</strong> O DistilBERT está mais correto. O Javari É um rio (afluente do
+                    Amazonas).<br>
+                    O RoBERTa confundiu o rio com a bacia hidrográfica.
+                </p>
+            </div>
+        </div>
+
+        <!-- Conclusão -->
+        <div class="conclusion">
+            <h2>Conclusão Final</h2>
+            <p>
+                Após testar <strong>1.000 perguntas</strong> e analisar <strong>25 exemplos detalhadamente</strong>,
+                o modelo recomendado é:
+            </p>
+
+            <div style="font-size: 4em; margin: 30px 0;">
+                🏆 <strong>DistilBERT</strong>
+            </div>
+
+            <div class="conclusion-box">
+                <h4>Por que o DistilBERT venceu?</h4>
+                <ul>
+                    <li><strong>Mais rápido:</strong> Processa perguntas 60% mais rápido que o RoBERTa</li>
+                    <li><strong>Mais leve:</strong> Usa 40% menos memória do computador</li>
+                    <li><strong>Mais fiel:</strong> Copia 83.7% das respostas diretamente do texto</li>
+                    <li><strong>Menos erros:</strong> Só "inventa" respostas em 7.7% dos casos</li>
+                    <li><strong>Mais honesto:</strong> Quando não sabe, admite (baixa confiança)</li>
+                </ul>
+            </div>
+
+            <div class="conclusion-box">
+                <h4>Quando usar cada modelo?</h4>
+                <p style="text-align: left; max-width: 700px; margin: 20px auto;">
+                    <strong>✅ Use DistilBERT para:</strong><br>
+                    • Perguntas factuais simples (quem, quando, onde, o que)<br>
+                    • Grandes volumes de perguntas (processa mais rápido)<br>
+                    • Quando precisa de respostas confiáveis e diretas<br>
+                    • Sistemas com recursos computacionais limitados<br><br>
+
+                    <strong>⚠️ Use RoBERTa para:</strong><br>
+                    • Perguntas complexas que exigem interpretação<br>
+                    • Quando tem tempo e recursos computacionais<br>
+                    • Perguntas que exigem compreensão profunda do contexto
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <div class="scroll-indicator" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        ↑
+    </div>
+
+    <script>
+        // Tab functionality
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Chart.js - Performance Comparison
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Confiança', 'Fidelidade', 'Velocidade', 'Tamanho'],
+                datasets: [{
+                    label: 'DistilBERT',
+                    data: [41.3, 83.7, 160, 160],
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 2
+                }, {
+                    label: 'RoBERTa',
+                    data: [33.1, 78.4, 100, 100],
+                    backgroundColor: 'rgba(245, 87, 108, 0.8)',
+                    borderColor: 'rgba(245, 87, 108, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Desempenho (%)',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Métricas',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if (context.dataIndex < 2) {
+                                        label += context.parsed.y + '%';
+                                    } else {
+                                        label += context.parsed.y + '% (relativo)';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Animate progress bars on scroll
+        const observerOptions = {
+            threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver(function (entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const progressBars = entry.target.querySelectorAll('.progress-fill');
+                    progressBars.forEach(bar => {
+                        const width = bar.style.width;
+                        bar.style.width = '0%';
+                        setTimeout(() => {
+                            bar.style.width = width;
+                        }, 100);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+
+</html>

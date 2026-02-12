@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(file:*)",
+      "Bash(for f in *.zip)",
+      "Bash(do unzip -l \"$f\")",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(powershell -Command:*)",
+      "Bash(python:*)",
+      "Bash(chcp:*)",
+      "Bash(del \"E:\\\\PLN\\\\_fix_cell.py\")"
+    ]
+  }
+}
